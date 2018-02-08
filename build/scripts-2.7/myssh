@@ -1,0 +1,92 @@
+#!/usr/bin/python
+# coding=utf-8
+import click
+import subprocess
+import sqlite3
+import os
+
+home = os.environ['HOME']
+
+db = '%s/.myssh/server.db' % home
+if not os.path.exists(db):
+    dirpath = os.path.dirname(db)
+    if not os.path.isdir(dirpath):
+        os.makedirs(dirpath)
+    if not os.path.exists(db):
+        f = os.open(db, os.O_RDWR | os.O_CREAT,0777)
+        os.close(f)
+
+conn = sqlite3.connect(db)
+
+
+def dict_factory(cursor, row):
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
+
+
+def inputPwd():
+    user = click.prompt('输入登录用户', type=str)
+
+
+conn.row_factory = dict_factory
+c = conn.cursor()
+
+
+def checkDb():
+    '''
+        检查表是否初始化过
+    '''
+    ck_table = c.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='server'")
+    if not ck_table.fetchone():
+        c.execute('''CREATE TABLE server
+             (id integer PRIMARY KEY AUTOINCREMENT,host varchar(20), 
+             port integer, user varchar(20) null, pwd varchar(64) null,remark varchar(100) null)
+             ''')
+        conn.commit()
+
+
+@click.command()
+def main():
+    checkDb()
+    click.echo(click.style('welcome use ssh tool by vison .v1.0', fg='red'))
+    click.echo(click.style('可选的服务列表:', fg='red'))
+    click.echo(click.style('  1) 添加host', fg='white'))
+    click.echo(click.style('  2) 删除host', fg='white'))
+    hosts = c.execute("select * from server")
+    host_display_id = 0
+    select_id = None
+    displayid_id_relate = {}
+    for host in hosts:
+        host_display_id += 3
+        displayid_id_relate[host_display_id] = host['id']
+        click.echo(
+            click.style(
+                '  %d) %s' % (host_display_id, host['remark']), fg='white'))
+    value = click.prompt('输入选项', type=int)
+    if value > 2:
+        c.execute(
+            "select * from server where id = %d" % displayid_id_relate[value])
+        sel_host = c.fetchone()
+        subprocess.call(['ssh', '-p', str(sel_host['port']), sel_host['host']])
+    elif value == 1:
+        host = click.prompt('输入要添加的host', type=str)
+        port = click.prompt('输入端口', type=int)
+        remark = click.prompt('输入备注用于菜单显示', type=str)
+        c.execute(
+            "INSERT INTO server (host,port,remark) VALUES ('%s',%d,'%s')" %
+            (host, port, remark))
+        conn.commit()
+    elif value == 2:
+        select_id = click.prompt('输入要删除的host', type=int)
+        c.execute("delete from server where id = %d" %
+                  displayid_id_relate[select_id])
+        conn.commit()
+    else:
+        click.echo(click.style('输入有误', fg='red'))
+
+
+if __name__ == '__main__':
+    main()
