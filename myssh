@@ -56,15 +56,15 @@ def main():
     click.echo(click.style('  1) 添加host', fg='white'))
     click.echo(click.style('  2) 删除host', fg='white'))
     hosts = c.execute("select * from server")
-    host_display_id = 0
+    host_display_id = 3
     select_id = None
     displayid_id_relate = {}
     for host in hosts:
-        host_display_id += 3
         displayid_id_relate[host_display_id] = host['id']
         click.echo(
             click.style(
                 '  %d) %s' % (host_display_id, host['remark']), fg='white'))
+        host_display_id += 1
     value = click.prompt('输入选项', type=int)
     if value > 2:
         c.execute(
