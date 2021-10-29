@@ -3,4 +3,5 @@ setup.py
 myssh.egg-info/PKG-INFO
 myssh.egg-info/SOURCES.txt
 myssh.egg-info/dependency_links.txt
+myssh.egg-info/requires.txt
 myssh.egg-info/top_level.txt
